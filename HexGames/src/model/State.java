@@ -1,21 +1,23 @@
-package model;
+package src.model;
 
 import java.util.*;
+import src.util.AbstractListenableModel;
 
-public class State implements Comparable<State> {
+public class State extends AbstractListenableModel implements Comparable<State> {
 
     private final static int PLAYER1 = 1;
     private final static int PLAYER2 = 2;
     private final static int BLANK = 0;
-    private int[][] board;
-    private int cols, rows;
+    private final int[][] board;
+    private final int   cols, rows;
     private int currentPlayer;
-    private int numberOfPiecesPlayer1;
-    private int numberOfPiecesPlayer2;
+
     private boolean visited[][];
     private ArrayList<State> children;
     private State parent;
+    private Move parentMove ;
     private double numVisits, UCTValue, victories, losses = 0;
+    private  double UCT_RAVE_Value , numvisits_Rave , Victories_Rave , losses_Rave ;
 
 
     /*
@@ -23,15 +25,15 @@ public class State implements Comparable<State> {
      * @param board the board
      * @param currentPlayer
      */
-    public State(int cols, int rows, int[][] board, int currentPlayer, State parent) {
+    public State(int cols, int rows, int[][] board, int currentPlayer, State parent , Move parentMove) {
         this.cols = cols;
         this.rows = rows;
         this.board = board;
         this.visited = new boolean[rows][cols];
         this.currentPlayer = currentPlayer;
-        // this.numberOfPiecesPlayer1 = numberOfPiecesPlayer1;
-        // this.numberOfPiecesPlayer2 = numberOfPiecesPlayer2;
+
         this.parent = parent;
+        this.parentMove = parentMove;
         this.children = new ArrayList<>();
 
     }
@@ -40,9 +42,7 @@ public class State implements Comparable<State> {
      * @param cols rows the board size
      */
     public State(int cols, int rows) {
-        this.numberOfPiecesPlayer1 = 0;
-        this.numberOfPiecesPlayer2 = 0;
-        this.currentPlayer = PLAYER1;
+
         this.cols = cols;
         this.rows = rows;
         this.board = new int[cols][rows];
@@ -63,6 +63,7 @@ public class State implements Comparable<State> {
         }
         this.children = new ArrayList<>();
         this.parent = null;
+        this.parentMove = null ;
     }
 
     /*
@@ -88,7 +89,6 @@ public class State implements Comparable<State> {
      * @return state
      */
     public State play(Move m) {
-        // if(m == null) return new State(cols , rows , board , currentPlayer , this);
         int x = m.getX();
         int y = m.getY();
         int[][] copyBoard = new int[rows][cols];
@@ -98,17 +98,12 @@ public class State implements Comparable<State> {
             }
         }
 
-        copyBoard[x][y] = currentPlayer;
+        copyBoard[x][y] = this.currentPlayer;
+         parentMove = new Move(x , y);
 
-        if (currentPlayer == PLAYER1) {
-            numberOfPiecesPlayer1++;
-
-        } else if (currentPlayer == PLAYER2) {
-            numberOfPiecesPlayer2++;
-
-        }
-
-        State newState = new State(cols, rows, copyBoard, currentPlayer, this);
+            fireChange();
+        //this.currentPlayer = (this.currentPlayer == PLAYER1 ? PLAYER2 : PLAYER1) ;
+        State newState = new State(this.cols, this.rows, copyBoard, this.currentPlayer, this , parentMove);
         return newState;
     }
 
@@ -211,7 +206,7 @@ public class State implements Comparable<State> {
                 copyBoard[i][j] = this.board[i][j];
             }
         }
-        return new State(this.rows, this.cols, copyBoard, this.currentPlayer, this);
+        return new State(this.rows, this.cols, copyBoard, this.currentPlayer, this , this.parentMove);
     }
 
     /*
@@ -337,5 +332,37 @@ public class State implements Comparable<State> {
         else UCTValue = (victories / numVisits) + Math.sqrt(2) * Math.sqrt(Math.log(parent.numVisits) / numVisits);
     }
 
+    public void UCT_RAVE_Value() {
+        this.UCT_RAVE_Value = UCT_RAVE_Value;
+    }
+    public double getUCT_RAVE_Value() {
+        return UCT_RAVE_Value;
+    }
+    public double getNumvisits_Rave() {
+        return numvisits_Rave;
+    }
 
+    public void setNumvisits_Rave(double numvisits_Rave) {
+        this.numvisits_Rave = numvisits_Rave;
+    }
+
+    public double getVictories_Rave() {
+        return Victories_Rave;
+    }
+
+    public void setVictories_Rave(double victories_Rave) {
+        Victories_Rave = victories_Rave;
+    }
+
+    public double getLosses_Rave() {
+        return losses_Rave;
+    }
+
+    public void setLosses_Rave(double losses_Rave) {
+        this.losses_Rave = losses_Rave;
+    }
+
+    public Move geLastMove() {
+        return this.parentMove ;
+    }
 }

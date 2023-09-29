@@ -1,20 +1,20 @@
-package mcts;
+package src.mcts;
 
-import model.Move;
-import model.State;
+import src.model.Move;
+import src.model.State;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
-public class MonteCarloTreeSearch {
+public class MonteCarloTreeSearchRAVE {
 
+    private State rootNode;
+    private State bestMove;
+    private Map<State, Map<Move, double[]>> raveTable = new HashMap<>();
+    public  Move movePlay ;
 
-    public State rootNode;
-    public State bestMove;
-
-    public MonteCarloTreeSearch(State r) {
-        this.rootNode = r;
+    public MonteCarloTreeSearchRAVE(State state) {
+        this.rootNode = state;
+       // raveStats = new HashMap<>();
 
     }
 
@@ -32,7 +32,8 @@ public class MonteCarloTreeSearch {
                 return currentNode.getChildren().get(0);
             } else {
                 for (State child : currentNode.getChildren()) {
-                    child.setUCTValue();
+                    //child.setUCTValue();
+                    //child.setUCTValueWithRAVE(raveTable.get(currentNode), currentNode.getNumVisits());
                 }
 
                 Collections.sort(currentNode.getChildren());
@@ -53,6 +54,7 @@ public class MonteCarloTreeSearch {
             State child = s.play(m);
             child.setCurrentPlayer(s.getCurrentPlayer() == 1 ? 2 : 1);
             s.setChildren(child);
+
         }
     }
 
@@ -67,8 +69,9 @@ public class MonteCarloTreeSearch {
                 return newState.getCurrentPlayer();
             }
             newState = newState.play(m);
+
             if (newState.isOver(newState.getCurrentPlayer()) == true) {
-              //  System.out.println("gagnant sim: "+ newState.getCurrentPlayer());
+
                 return newState.getCurrentPlayer();
 
             }
@@ -81,10 +84,22 @@ public class MonteCarloTreeSearch {
 
         State current = s;
         while (current != null) {
+
             current.setNumVisits(current.getNumVisits() + 1);
-            if (current.getCurrentPlayer() == won) {
+
+            if (rootNode.getCurrentPlayer() == won) {
                 current.setVictories(current.getVictories() + 1);
+
             } else current.setLosses(current.getLosses() + 1);
+
+
+
+            // mise à jour des statistiques RAVE
+            Map<Move, double[]> raveStats = raveTable.computeIfAbsent(current, k -> new HashMap<>());
+            Move lastMove = current.geLastMove();
+            double[] raveValues = raveStats.computeIfAbsent(lastMove, k -> new double[2]);
+            raveValues[0] += (rootNode.getCurrentPlayer() == won) ? 1 : 0;
+            raveValues[1]++;
             current = current.getParent();
         }
     }
@@ -103,13 +118,38 @@ public class MonteCarloTreeSearch {
         for (State child : rootNode.getChildren()) {
             if (child.getVictories() >= victories) {
                 bestMove = child;
+                movePlay = bestMove.geLastMove();
                 victories = child.getVictories();
             }
         }
-       // System.out.println(bestMove);
-     //  for (State child: rootNode.getChildren()) System.out.println(Arrays.toString(child.getBoard()) + " " + child.getNumVisits()+ " " +child.getVictories() +" "+" "+ child.getLosses() +" "+ child.getUCTValue() + " " + child.getMove());
+        for (Map.Entry<State, Map<Move, double[]>> stateEntry : raveTable.entrySet()) {
+            State state = stateEntry.getKey();
+            System.out.println("State: " + state.toString());
+            Map<Move, double[]> raveStats = stateEntry.getValue();
+            for (Map.Entry<Move, double[]> moveEntry : raveStats.entrySet()) {
+                Move move = moveEntry.getKey();
+                double[] stats = moveEntry.getValue();
+                System.out.println("  Move: " + move.toString() + " RAVE stats: " + Arrays.toString(stats));
+            }
+        }
+
 
     }
 
+    public State getRootNode() {
+        return rootNode;
+    }
 
+    public void setRootNode(State rootNode) {
+        this.rootNode = rootNode;
+    }
+
+    public State getBestMove() {
+        return bestMove;
+    }
+
+    public void setBestMove(State bestMove) {
+        this.bestMove = bestMove;
+    }
 }
+
